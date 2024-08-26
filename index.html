@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram ID Checker & Note Saver</title>
+    <script async src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script type="module">
+        // Імпорт необхідних функцій з Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+        import { getDatabase, ref, set, push, onValue } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+
+        // Firebase конфігурація
+        const firebaseConfig = {
+            apiKey: "AIzaSyD-5CPzp5iwNHUxloFkDBf3J8gRlUpbGVc",
+            authDomain: "ton-not.firebaseapp.com",
+            databaseURL: "https://ton-not-default-rtdb.firebaseio.com",
+            projectId: "ton-not",
+            storageBucket: "ton-not.appspot.com",
+            messagingSenderId: "729333286761",
+            appId: "1:729333286761:web:741fdeb1572cc1908bdff8",
+            measurementId: "G-JKCWNWTLBT"
+        };
+
+        // Ініціалізація Firebase
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+
+        // Функція для додавання нотатки
+        function addNoteToDatabase(userId, noteText) {
+            const notesRef = ref(database, 'users/' + userId + '/notes');
+            const newNoteRef = push(notesRef);
+            set(newNoteRef, {
+                text: noteText
+            });
+        }
+
+        // Функція для завантаження нотаток
+        function loadNotes(userId) {
+            const notesRef = ref(database, 'users/' + userId + '/notes');
+            onValue(notesRef, (snapshot) => {
+                const notesContainer = document.getElementById('notes');
+                notesContainer.innerHTML = ""; // Очищаємо поточний список
+
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const note = childSnapshot.val();
+                        const noteElement = document.createElement('li');
+                        noteElement.textContent = note.text;
+                        notesContainer.appendChild(noteElement);
+                    });
+                } else {
+                    notesContainer.innerText = 'У вас ще немає нотаток.';
+                }
+            });
+        }
+
+        // Отримання Telegram ID та збереження нотаток
+        document.getElementById('get-id-btn').addEventListener('click', function() {
+            const tg = window.Telegram.WebApp;
+            const user = tg.initDataUnsafe.user;
+
+            if (user) {
+                const userId = user.id;
+                document.getElementById('result').innerText = `Ваш Telegram ID: ${userId}`;
+
+                // Завантажуємо нотатки користувача
+                loadNotes(userId);
+
+                // Додаємо слухача на кнопку для додавання нотаток
+                document.getElementById('save-note-btn').addEventListener('click', function() {
+                    const noteText = document.getElementById('noteText').value;
+                    if (noteText.trim() !== "") {
+                        addNoteToDatabase(userId, noteText);
+                        document.getElementById('noteText').value = ""; // Очищаємо поле
+                    } else {
+                        alert("Нотатка не може бути порожньою");
+                    }
+                });
+            } else {
+                document.getElementById('result').innerText = 'Не вдалося отримати ваш Telegram ID.';
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Отримати свій Telegram ID та зберегти нотатки</h1>
+
+    <button id="get-id-btn">Отримати ID</button>
+    <p id="result"></p>
+
+    <textarea id="noteText" placeholder="Введіть вашу нотатку тут..."></textarea><br>
+    <button id="save-note-btn">Зберегти нотатку</button>
+    
+    <h2>Ваші нотатки:</h2>
+    <ul id="notes"></ul>
+</body>
+</html>
